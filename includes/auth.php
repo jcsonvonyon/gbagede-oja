@@ -26,11 +26,26 @@ function hasRole($role_name) {
 }
 
 /**
- * Restrict access to Admins only
+ * Check if user has permission for a specific module and action
  */
-function adminOnly() {
+function hasPermission($module, $action = 'view') {
+    // Admins have bypass for everything
+    if (hasRole('Admin')) return true;
+
+    if (!isset($_SESSION['permissions'])) return false;
+    
+    $perms = $_SESSION['permissions'];
+    
+    // Check if module exists in permissions and the specific action is allowed
+    return isset($perms[$module]) && in_array($action, (array)$perms[$module]);
+}
+
+/**
+ * Restrict access based on permission
+ */
+function requirePermission($module, $action = 'view') {
     requireLogin();
-    if (!hasRole('Admin')) {
+    if (!hasPermission($module, $action)) {
         header("Location: dashboard.php?error=unauthorized");
         exit();
     }

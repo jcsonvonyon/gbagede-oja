@@ -14,7 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (!empty($username) && !empty($password)) {
-        $stmt = $pdo->prepare("SELECT u.*, r.role_name FROM users u JOIN user_roles r ON u.role_id = r.id WHERE u.username = ?");
+        // Primary check against user_roles (which is what the system currently uses for names)
+        // but we'll try to fetch permissions from the 'roles' table if they match by name
+        $stmt = $pdo->prepare("SELECT u.*, ur.role_name, r.permissions 
+                             FROM users u 
+                             JOIN user_roles ur ON u.role_id = ur.id 
+                             LEFT JOIN roles r ON ur.role_name = r.role_name
+                             WHERE u.username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
@@ -24,6 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['role'] = $user['role_name'];
+                
+                // Parse and store permissions
+                $perms = [];
+                if (!empty($user['permissions'])) {
+                    $perms = json_decode($user['permissions'], true) ?: [];
+                }
+                $_SESSION['permissions'] = $perms;
 
                 // Update last login
                 $stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");

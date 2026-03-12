@@ -27,6 +27,7 @@ $role = $_SESSION['role'];
 
         <div class="nav-menu">
             <!-- 0. POS Menu -->
+            <?php if (hasPermission('pos')): ?>
             <div class="nav-item">
                 <a class="nav-link" onclick="toggleDropdown(this)" style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366f1;">
                     <div style="color: #6366f1; font-weight: 700;">
@@ -40,8 +41,10 @@ $role = $_SESSION['role'];
                     <a href="?page=receipt_list" class="dropdown-link">Recent Sales</a>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- 1. Transaction Menu -->
+            <?php if (hasPermission('transaction')): ?>
             <div class="nav-item">
                 <a class="nav-link" onclick="toggleDropdown(this)">
                     <div>
@@ -85,8 +88,10 @@ $role = $_SESSION['role'];
                     <a href="?page=expenses" class="dropdown-link">Expenses</a>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- 2. Report Menu -->
+            <?php if (hasPermission('reports')): ?>
             <div class="nav-item">
                 <a class="nav-link" onclick="toggleDropdown(this)">
                     <div>
@@ -102,8 +107,10 @@ $role = $_SESSION['role'];
                     <a href="?page=user_activity" class="dropdown-link">User Activity</a>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- 3. Set up Menu -->
+            <?php if (hasPermission('setup')): ?>
             <div class="nav-item">
                 <a class="nav-link" onclick="toggleDropdown(this)">
                     <div>
@@ -113,6 +120,7 @@ $role = $_SESSION['role'];
                     <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
                 </a>
                 <div class="dropdown-items">
+                    <?php if (hasPermission('items')): ?>
                     <div class="submenu-wrapper">
                         <a href="javascript:void(0)" class="dropdown-link toggle-submenu" onclick="toggleSubSubmenu(this)">
                             Items
@@ -124,13 +132,14 @@ $role = $_SESSION['role'];
                             <a href="?page=groups" class="dropdown-link nested">Groups</a>
                         </div>
                     </div>
+                    <?php endif; ?>
                     
-                    <a href="?page=customers" class="dropdown-link">Customers</a>
-                    <a href="?page=vendors" class="dropdown-link">Vendor</a>
+                    <?php if (hasPermission('customers')): ?><a href="?page=customers" class="dropdown-link">Customers</a><?php endif; ?>
+                    <?php if (hasPermission('vendors')): ?><a href="?page=vendors" class="dropdown-link">Vendor</a><?php endif; ?>
                     <a href="?page=sales_reps" class="dropdown-link">Sales Representatives</a>
                     <a href="?page=manufacturers" class="dropdown-link">Manufacturer</a>
                     <a href="?page=payment_methods" class="dropdown-link">Payment Method</a>
-                    <?php if ($role === 'Admin'): ?>
+                    <?php if (hasPermission('users')): ?>
                     <div class="submenu-wrapper">
                         <a href="javascript:void(0)" class="dropdown-link toggle-submenu" onclick="toggleSubSubmenu(this)">
                             Users
@@ -153,6 +162,7 @@ $role = $_SESSION['role'];
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
         </div>
 
@@ -317,9 +327,48 @@ $role = $_SESSION['role'];
                 <?php
             } elseif (is_string($page) && array_key_exists($page, $allowed_pages)) {
                 $file_path = $allowed_pages[(string)$page];
-                if (file_exists($file_path)) {
-                    include $file_path;
+                if (isset($allowed_pages[$page])) {
+                // Determine module mapping for permission check
+                $module_map = [
+                    'pos' => 'pos',
+                    'receipt_list' => 'pos',
+                    'purchase_invoice' => 'transaction',
+                    'purchase_order' => 'transaction',
+                    'inventory_transfer' => 'transaction',
+                    'inventory_adjustment' => 'transaction',
+                    'receipt_new' => 'transaction',
+                    'payments' => 'transaction',
+                    'expenses' => 'transaction',
+                    'sales_report' => 'reports',
+                    'inventory_report' => 'reports',
+                    'balance_report' => 'reports',
+                    'user_activity' => 'reports',
+                    'items' => 'items',
+                    'units' => 'items',
+                    'subgroups' => 'items',
+                    'groups' => 'items',
+                    'customers' => 'customers',
+                    'vendors' => 'vendors',
+                    'user_accounts' => 'users',
+                    'user_groups' => 'users'
+                ];
+                
+                $required_module = $module_map[$page] ?? 'setup';
+                
+                if (hasPermission($required_module)) {
+                    if (file_exists($file_path)) {
+                        include $file_path;
+                    } else {
+                        echo "<h2>Error</h2><p>Module file not found: $file_path</p>";
+                    }
                 } else {
+                    echo '<div class="premium-card" style="padding: 40px; text-align: center; color: #64748b;">';
+                    echo '<i class="fas fa-lock" style="font-size: 48px; margin-bottom: 20px; opacity: 0.2;"></i>';
+                    echo '<h2>Access Denied</h2>';
+                    echo '<p>You do not have permission to access the ' . htmlspecialchars($display_title) . ' module.</p>';
+                    echo '</div>';
+                }
+            } else {
                     echo "<h2>Error</h2><p>Module file not found: $file_path</p>";
                 }
             } else {
