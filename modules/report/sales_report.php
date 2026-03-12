@@ -6,8 +6,10 @@ requireLogin();
 $start_date = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
 $end_date = $_GET['end_date'] ?? date('Y-m-d');
 
+$current_page = $_GET['page'] ?? 'sales_report';
 $user_id = $_SESSION['user_id'];
-$is_admin = hasRole('Admin');
+$is_admin = hasRole('Admin') || hasRole('Manager');
+$personal_only = ($current_page === 'receipt_list');
 
 $sql = "SELECT t.*, u.full_name as sold_by, c.name as customer_name 
         FROM transactions t 
@@ -18,9 +20,16 @@ $sql = "SELECT t.*, u.full_name as sold_by, c.name as customer_name
 
 $params = [$start_date, $end_date];
 
-if (!$is_admin) {
+if ($personal_only) {
+    // Force personal view for Everyone in "Recent Sales"
     $sql .= " AND t.user_id = ?";
     $params[] = $user_id;
+} else {
+    // In Global Report, only Admins/Managers see everything
+    if (!$is_admin) {
+        $sql .= " AND t.user_id = ?";
+        $params[] = $user_id;
+    }
 }
 
 $sql .= " ORDER BY t.transaction_date DESC";
@@ -38,13 +47,17 @@ foreach ($sales as $s) {
     }
     $total_revenue += $s['total_amount'];
 }
+
+// Dynamic display texts
+$page_title = $personal_only ? "My Recent Sales" : "Global Sales Report";
+$page_subtitle = $personal_only ? "Your personal history of sales and issued receipts." : "Comprehensive log of all customer transactions across the entire system.";
 ?>
 <div style="font-family: 'Inter', system-ui, sans-serif; display: flex; flex-direction: column; gap: 30px;">
     
     <!-- Heading -->
     <div>
-        <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">Sales & Receipts History</h2>
-        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Comprehensive log of all customer transactions and issued receipts.</p>
+        <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;"><?= $page_title ?></h2>
+        <p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;"><?= $page_subtitle ?></p>
     </div>
 
 
@@ -62,8 +75,8 @@ foreach ($sales as $s) {
         </div>
         <button type="submit" style="background: var(--primary); color: white; padding: 10px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Filter Report</button>
         <button type="button" onclick="window.print()" style="background: #e2e8f0; color: #1e293b; padding: 10px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Print Report</button>
-        <?php if (hasRole('Admin')): ?>
-        <a href="modules/report/export_sales_csv.php?start_date=<?= $start_date ?>&end_date=<?= $end_date ?>" style="background: #0d9488; color: white; padding: 10px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; font-size: 13.333px; border: 1px solid #0d9488;">Export CSV</a>
+        <?php if ($is_admin || $personal_only): ?>
+        <a href="modules/report/export_sales_csv.php?start_date=<?= $start_date ?>&end_date=<?= $end_date ?><?= $personal_only ? '&personal=1' : '' ?>" style="background: #0d9488; color: white; padding: 10px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; font-size: 13.333px; border: 1px solid #0d9488;">Export CSV</a>
         <?php endif; ?>
     </form>
 </div>

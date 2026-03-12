@@ -3,16 +3,39 @@ require_once '../../includes/db.php';
 require_once '../../includes/auth.php';
 requireLogin();
 
-if (!hasRole('Admin')) {
+$is_admin = hasRole('Admin') || hasRole('Manager');
+$personal_only = isset($_GET['personal']) && $_GET['personal'] == 1;
+
+if (!$is_admin && !$personal_only) {
     die("Unauthorized access.");
 }
 
 $start_date = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
 $end_date = $_GET['end_date'] ?? date('Y-m-d');
+$user_id = $_SESSION['user_id'];
 
-// Fetch Sales Data
-$stmt = $pdo->prepare("SELECT t.*, u.full_name as sold_by, c.name as customer_name FROM transactions t JOIN users u ON t.user_id = u.id LEFT JOIN customers c ON t.customer_id = c.id WHERE t.type = 'Sale' AND DATE(t.transaction_date) BETWEEN ? AND ? ORDER BY t.transaction_date DESC");
-$stmt->execute([$start_date, $end_date]);
+// Build Query
+$sql = "SELECT t.*, u.full_name as sold_by, c.name as customer_name 
+        FROM transactions t 
+        JOIN users u ON t.user_id = u.id 
+        LEFT JOIN customers c ON t.customer_id = c.id 
+        WHERE t.type = 'Sale' 
+        AND DATE(t.transaction_date) BETWEEN ? AND ?";
+
+$params = [$start_date, $end_date];
+
+if ($personal_only) {
+    $sql .= " AND t.user_id = ?";
+    $params[] = $user_id;
+} else if (!$is_admin) {
+    // Safety check: non-admins can only export their own even if they try to bypass personal flag
+    $sql .= " AND t.user_id = ?";
+    $params[] = $user_id;
+}
+
+$sql .= " ORDER BY t.transaction_date DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $sales = $stmt->fetchAll();
 
 // Set Headers for Download
