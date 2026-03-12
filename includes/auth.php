@@ -46,7 +46,7 @@ function hasPermission($module, $action = 'view') {
 function requirePermission($module, $action = 'view') {
     requireLogin();
     if (!hasPermission($module, $action)) {
-        header("Location: dashboard.php?error=unauthorized");
+        header("Location: /dashboard.php?error=unauthorized");
         exit();
     }
 }
@@ -57,7 +57,7 @@ function requirePermission($module, $action = 'view') {
 function adminOnly() {
     requireLogin();
     if (!hasRole('Admin')) {
-        header("Location: dashboard.php?error=unauthorized");
+        header("Location: /dashboard.php?error=unauthorized");
         exit();
     }
 }

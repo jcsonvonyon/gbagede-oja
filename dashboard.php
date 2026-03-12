@@ -136,9 +136,9 @@ $role = $_SESSION['role'];
                     
                     <?php if (hasPermission('customers')): ?><a href="?page=customers" class="dropdown-link">Customers</a><?php endif; ?>
                     <?php if (hasPermission('vendors')): ?><a href="?page=vendors" class="dropdown-link">Vendor</a><?php endif; ?>
-                    <a href="?page=sales_reps" class="dropdown-link">Sales Representatives</a>
-                    <a href="?page=manufacturers" class="dropdown-link">Manufacturer</a>
-                    <a href="?page=payment_methods" class="dropdown-link">Payment Method</a>
+                    <?php if (hasPermission('sales_reps')): ?><a href="?page=sales_reps" class="dropdown-link">Sales Representatives</a><?php endif; ?>
+                    <?php if (hasPermission('manufacturers')): ?><a href="?page=manufacturers" class="dropdown-link">Manufacturer</a><?php endif; ?>
+                    <?php if (hasPermission('payment_methods')): ?><a href="?page=payment_methods" class="dropdown-link">Payment Method</a><?php endif; ?>
                     <?php if (hasPermission('users')): ?>
                     <div class="submenu-wrapper">
                         <a href="javascript:void(0)" class="dropdown-link toggle-submenu" onclick="toggleSubSubmenu(this)">
@@ -150,6 +150,7 @@ $role = $_SESSION['role'];
                         </div>
                     </div>
                     <?php endif; ?>
+                    <?php if (hasPermission('setup', 'edit')): ?>
                     <div class="submenu-wrapper">
                         <a href="javascript:void(0)" class="dropdown-link toggle-submenu" onclick="toggleSubSubmenu(this)">
                             Others
@@ -160,6 +161,7 @@ $role = $_SESSION['role'];
                             <a href="?page=till" class="dropdown-link nested">Till</a>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -271,6 +273,7 @@ $role = $_SESSION['role'];
                 <h1>Welcome to the Inventory Dashboard</h1>
                 <p>Select a menu item from the sidebar to manage your inventory.</p>
                 
+                <?php if (hasPermission('reports')): ?>
                 <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                     <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 4px solid #0d8a72;">
                         <h3 style="color: #64748b; font-size: 12px; text-transform: uppercase;">Today's Sales</h3>
@@ -289,6 +292,7 @@ $role = $_SESSION['role'];
                         <p style="font-size: 20px; font-weight: 700; margin-top: 5px; color: #ef4444;"><?= $low_stock ?></p>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div style="margin-top: 40px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
                     <div style="padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
@@ -425,6 +429,17 @@ $role = $_SESSION['role'];
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const page = params.get('page');
+            const error = params.get('error');
+
+            // Show Access Denied Modal if unauthorized
+            if (error === 'unauthorized') {
+                const modal = document.getElementById('accessDeniedModal');
+                if (modal) modal.style.display = 'flex';
+                // Remove error from URL without refreshing
+                const newUrl = window.location.pathname + (page ? '?page=' + page : '');
+                window.history.replaceState({}, document.title, newUrl);
+            }
+
             if (page) {
                 const activeLink = document.querySelector(`.dropdown-link[href="?page=${page}"]`);
                 if (activeLink) {
@@ -445,5 +460,19 @@ $role = $_SESSION['role'];
             }
         });
     </script>
+
+    <!-- Access Denied Modal -->
+    <div id="accessDeniedModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);">
+        <div class="premium-card" style="width: 400px; padding: 40px; text-align: center; background: white; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="width: 80px; height: 80px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: #ef4444; font-size: 32px;">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 style="font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 12px;">Access Denied</h3>
+            <p style="color: #64748b; line-height: 1.6; margin-bottom: 30px;">You don't have the required permissions to access this area. Please contact your administrator if you believe this is an error.</p>
+            <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="width: 100%; padding: 14px; background: #1e293b; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: transform 0.2s;">
+                Got it, take me back
+            </button>
+        </div>
+    </div>
 </body>
 </html>
