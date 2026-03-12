@@ -14,12 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (!empty($username) && !empty($password)) {
-        // Primary check against user_roles (which is what the system currently uses for names)
-        // but we'll try to fetch permissions from the 'roles' table if they match by name
-        $stmt = $pdo->prepare("SELECT u.*, ur.role_name, r.permissions 
+        // Fetch user mapping through user_roles which is the active source of truth
+        $stmt = $pdo->prepare("SELECT u.*, ur.role_name, ur.permissions 
                              FROM users u 
                              JOIN user_roles ur ON u.role_id = ur.id 
-                             LEFT JOIN roles r ON ur.role_name = r.role_name
                              WHERE u.username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
