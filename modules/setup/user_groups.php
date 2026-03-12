@@ -37,36 +37,45 @@ $roles = $roles_stmt->fetchAll();
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($roles as $r): 
+            <?php if (empty($roles)): ?>
+                <tr><td colspan="4" style="padding: 40px; text-align: center; color: #64748b;">No user groups found.</td></tr>
+            <?php endif; ?>
+            <?php foreach ($roles as $role_data): 
                 // Count users in this role
                 $u_stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE role_id = ?");
-                $u_stmt->execute([$r['id']]);
+                $u_stmt->execute([$role_data['id']]);
                 $user_count = $u_stmt->fetchColumn();
             ?>
-            <tr class="table-row-custom">
-                <td style="font-weight: 700; color: #0d3d36;">
-                    <i class="fas fa-shield-alt" style="margin-right: 10px; opacity: 0.5;"></i>
-                    <?= htmlspecialchars($r['role_name']) ?>
+            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                <td style="padding: 20px 25px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #475569;">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <span style="font-weight: 700; color: #1e293b; font-size: 14px;"><?= htmlspecialchars($role_data['role_name']) ?></span>
+                    </div>
                 </td>
-                <td style="color: #64748b; font-size: 13.5px;"><?= htmlspecialchars($r['description'] ?: 'No description provided.') ?></td>
-                <td>
-                    <span class="premium-badge <?= $user_count > 0 ? 'badge-blue' : 'badge-red' ?>">
-                        <i class="fas fa-user-friends"></i> <?= $user_count ?> Active Users
+                <td style="padding: 20px 25px; color: #64748b; font-size: 13px;"><?= htmlspecialchars($role_data['description'] ?: 'No description provided') ?></td>
+                <td style="padding: 20px 25px;">
+                    <span class="status-pill status-<?= $user_count > 0 ? 'active' : 'inactive' ?>" style="font-size: 11px;">
+                        <i class="fas fa-users" style="margin-right: 5px;"></i> <?= $user_count ?> Active Users
                     </span>
                 </td>
-                <td style="text-align: right;">
-                    <button onclick='editRole(<?= json_encode($r) ?>)' class="action-btn" style="margin-right: 8px;" title="Edit">
-                        <i class="fas fa-pen" style="font-size: 12px;"></i>
-                    </button>
-                    <?php if ($user_count == 0): ?>
-                    <button onclick="deleteRole(<?= $r['id'] ?>)" class="action-btn" style="color: #ef4444;" title="Delete">
-                        <i class="fas fa-trash-alt" style="font-size: 12px;"></i>
-                    </button>
-                    <?php else: ?>
-                    <button class="action-btn" style="opacity: 0.3; cursor: not-allowed;" title="Cannot delete groups with active users">
-                        <i class="fas fa-lock" style="font-size: 12px;"></i>
-                    </button>
-                    <?php endif; ?>
+                <td style="padding: 20px 25px; text-align: right;">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick='editRole(<?= json_encode($role_data, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' class="action-btn" title="Edit Permissions">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <?php if ($user_count > 0 || strtolower($role_data['role_name']) == 'admin'): ?>
+                            <button class="action-btn" style="opacity: 0.3; cursor: not-allowed;" title="Cannot delete role with active users or core roles">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                        <?php else: ?>
+                            <button onclick="deleteRole(<?= $role_data['id'] ?>)" class="action-btn delete" title="Delete Group" style="color: #ef4444;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>

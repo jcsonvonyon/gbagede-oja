@@ -22,7 +22,7 @@ function requireLogin() {
  * Check if user has a specific role
  */
 function hasRole($role_name) {
-    return isset($_SESSION['role']) && $_SESSION['role'] === $role_name;
+    return isset($_SESSION['role']) && strtolower($_SESSION['role']) === strtolower($role_name);
 }
 
 /**

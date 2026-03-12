@@ -4,8 +4,11 @@ require_once '../../includes/auth.php';
 adminOnly();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requirePermission('users', 'edit');
+
     $id = $_POST['id'] ?? null;
     $role_name = trim($_POST['role_name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
     $permissions = $_POST['permissions'] ?? [];
     $perm_json = json_encode($permissions);
 
