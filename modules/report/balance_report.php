@@ -4,15 +4,15 @@ require_once 'includes/auth.php';
 requireLogin();
 
 // 1. Calculate Receivables (Owed by Customers)
-$receivables_stmt = $pdo->query("SELECT SUM(total_amount) as total FROM transactions WHERE type = 'Sale' AND payment_status != 'Paid'");
+$receivables_stmt = $pdo->query("SELECT SUM(balance_amount) as total FROM transactions WHERE type = 'Sale' AND payment_status != 'Paid'");
 $total_receivables = $receivables_stmt->fetch()['total'] ?? 0;
 
 // 2. Calculate Payables (Owed to Vendors)
-$payables_stmt = $pdo->query("SELECT SUM(total_amount) as total FROM transactions WHERE type = 'Stock-In' AND payment_status != 'Paid'");
+$payables_stmt = $pdo->query("SELECT SUM(balance_amount) as total FROM transactions WHERE type = 'Purchase' AND payment_status != 'Paid'");
 $total_payables = $payables_stmt->fetch()['total'] ?? 0;
 
 // 3. Current Position (Revenue - Expenses)
-$revenue_stmt = $pdo->query("SELECT SUM(total_amount) as total FROM transactions WHERE type = 'Sale'");
+$revenue_stmt = $pdo->query("SELECT SUM(amount_paid) as total FROM transactions WHERE type = 'Sale'");
 $total_revenue = $revenue_stmt->fetch()['total'] ?? 0;
 $expense_stmt = $pdo->query("SELECT SUM(amount) as total FROM expenses");
 $total_expenses = $expense_stmt->fetch()['total'] ?? 0;
@@ -27,9 +27,9 @@ $recent_stmt = $pdo->query("
 ");
 $activities = $recent_stmt->fetchAll();
 
-// 5. Fetch Debtors (Customers with Pending Payments) - Mocking with current transaction links
+// 5. Fetch Debtors (Customers with Pending Payments)
 $debtors_stmt = $pdo->query("
-    SELECT c.name, c.phone, SUM(t.total_amount) as balance 
+    SELECT c.id as customer_id, c.name, c.phone, SUM(t.balance_amount) as balance 
     FROM transactions t 
     JOIN customers c ON t.customer_id = c.id 
     WHERE t.type = 'Sale' AND t.payment_status != 'Paid'
@@ -133,7 +133,14 @@ $debtors = $debtors_stmt->fetchAll();
                                     <span style="background: #fef2f2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">Overdue</span>
                                 </td>
                                 <td style="padding: 16px 24px; text-align: right;">
-                                    <button style="background: none; border: none; color: #64748b; cursor: pointer;"><i class="fas fa-ellipsis-v"></i></button>
+                                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                        <a href="?page=receipt_list&customer_id=<?= $d['customer_id'] ?>" title="View Transaction History" style="color: #64748b; font-size: 14px; text-decoration: none; padding: 6px; border-radius: 6px; border: 1px solid #f1f5f9; background: #f8fafc;">
+                                            <i class="fas fa-history"></i>
+                                        </a>
+                                        <button title="Collect Payment" style="background: #0d9488; border: none; color: white; cursor: pointer; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">
+                                            Pay
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

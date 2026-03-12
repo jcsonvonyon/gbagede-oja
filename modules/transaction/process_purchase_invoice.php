@@ -26,14 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // 2. Insert Transaction Record
             $payment_status = 'Pending';
+            $balance_amount = $total_amount - $amount_paid;
+
             if ($amount_paid >= $total_amount) {
                 $payment_status = 'Paid';
+                $balance_amount = 0;
             } elseif ($amount_paid > 0) {
                 $payment_status = 'Partial';
             }
 
-            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, vendor_id, type, total_amount, amount_paid, payment_method, notes, reference_no, transaction_date, payment_status) VALUES (?, ?, 'Purchase', ?, ?, ?, ?, ?, NOW(), ?)");
-            $stmt->execute([$user_id, $vendor_id, $total_amount, $amount_paid, $payment_method, $notes, $reference_no, $payment_status]);
+            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, vendor_id, type, total_amount, amount_paid, balance_amount, payment_method, notes, reference_no, transaction_date, payment_status) VALUES (?, ?, 'Purchase', ?, ?, ?, ?, ?, ?, NOW(), ?)");
+            $stmt->execute([$user_id, $vendor_id, $total_amount, $amount_paid, $balance_amount, $payment_method, $notes, $reference_no, $payment_status]);
             $transaction_id = $pdo->lastInsertId();
 
             // 3. Process each item

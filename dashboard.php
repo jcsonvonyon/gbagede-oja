@@ -26,6 +26,21 @@ $role = $_SESSION['role'];
         </div>
 
         <div class="nav-menu">
+            <!-- 0. POS Menu -->
+            <div class="nav-item">
+                <a class="nav-link" onclick="toggleDropdown(this)" style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366f1;">
+                    <div style="color: #6366f1; font-weight: 700;">
+                        <i class="fas fa-cash-register"></i>
+                        <span>POS</span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; color: #6366f1;"></i>
+                </a>
+                <div class="dropdown-items">
+                    <a href="?page=pos" class="dropdown-link">Terminal</a>
+                    <a href="?page=receipt_list" class="dropdown-link">Recent Sales</a>
+                </div>
+            </div>
+
             <!-- 1. Transaction Menu -->
             <div class="nav-item">
                 <a class="nav-link" onclick="toggleDropdown(this)">
@@ -222,6 +237,7 @@ $role = $_SESSION['role'];
                 'inventory_report' => 'modules/report/inventory_report.php',
                 'balance_report' => 'modules/report/balance_report.php',
                 'user_activity' => 'modules/report/user_activity.php',
+                'pos' => 'modules/transaction/pos.php',
             ];
 
             if ($page === 'overview') {

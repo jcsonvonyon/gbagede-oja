@@ -19,7 +19,7 @@ $products = $products_stmt->fetchAll();
                 <option value="">-- Select Product --</option>
                 <?php foreach ($products as $p): ?>
                     <option value="<?= $p['id'] ?>">
-                        <?= htmlspecialchars($p['name']) ?> (Current: <?= $p['current_stock'] ?>)
+                        <?= htmlspecialchars($p['name']) ?> (Current: <?= number_format($p['current_stock'], 0) ?>)
                     </option>
                 <?php endforeach; ?>
             </select>

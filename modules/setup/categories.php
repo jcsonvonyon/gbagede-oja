@@ -14,6 +14,10 @@ $subgroups = $stmt->fetchAll();
 $stmt = $pdo->query("SELECT id, name FROM product_groups WHERE status = 'Active' ORDER BY name ASC");
 $groups = $stmt->fetchAll();
 
+// Fetch all Manufacturers for the linked image logic
+$stmt = $pdo->query("SELECT id, name FROM manufacturers WHERE status = 'Active' ORDER BY name ASC");
+$manufacturers = $stmt->fetchAll();
+
 $success = $_GET['success'] ?? null;
 $error = $_GET['error'] ?? null;
 ?>
@@ -68,13 +72,22 @@ $error = $_GET['error'] ?? null;
             <tr>
                 <th>Sub-group Name</th>
                 <th>Parent Group</th>
+                <th>Manufacturer / Brand</th>
                 <th>Description</th>
                 <th>Status</th>
                 <th style="text-align: right;">Actions</th>
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($subgroups as $s): ?>
+            <?php foreach ($subgroups as $s): 
+                // Fetch manufacturer name if linked
+                $m_name = '--';
+                if (!empty($s['manufacturer_id'])) {
+                    $m_stmt = $pdo->prepare("SELECT name FROM manufacturers WHERE id = ?");
+                    $m_stmt->execute([$s['manufacturer_id']]);
+                    $m_name = $m_stmt->fetchColumn() ?: '--';
+                }
+            ?>
             <tr class="table-row-custom">
                 <td style="font-weight: 700; color: #0d3d36;">
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -89,6 +102,12 @@ $error = $_GET['error'] ?? null;
                         <i class="fas fa-layer-group" style="font-size: 10px; opacity: 0.5;"></i>
                         <?= htmlspecialchars($s['group_name'] ?: 'Unassigned') ?>
                     </span>
+                </td>
+                <td style="color: #475569; font-weight: 500;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-industry" style="font-size: 11px; opacity: 0.4;"></i>
+                        <?= htmlspecialchars($m_name) ?>
+                    </div>
                 </td>
                 <td style="color: #64748b; font-size: 13px;">
                     <?= htmlspecialchars($s['description'] ?: '--') ?>
@@ -143,6 +162,17 @@ $error = $_GET['error'] ?? null;
             </div>
 
             <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Linked Manufacturer / Brand</label>
+                <select id="manufacturer_id" name="manufacturer_id" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; background: white;">
+                    <option value="">-- No Manufacturer (Default Image) --</option>
+                    <?php foreach ($manufacturers as $m): ?>
+                        <option value="<?= $m['id'] ?>"><?= htmlspecialchars($m['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p style="font-size: 11px; color: #64748b; margin-top: 5px;">The manufacturer's brand logo will be used as the product image in the POS terminal.</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Description</label>
                 <textarea id="description" name="description" rows="3" placeholder="Brief details about what items belong in this category" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; resize: none;"></textarea>
             </div>
@@ -185,6 +215,7 @@ function editSubgroup(data) {
     document.getElementById('subgroup_id').value = data.id;
     document.getElementById('name').value = data.name;
     document.getElementById('group_id').value = data.group_id;
+    document.getElementById('manufacturer_id').value = data.manufacturer_id || '';
     document.getElementById('description').value = data.description;
     
     if (data.status === 'Active' || !data.status) {

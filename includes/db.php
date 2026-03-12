@@ -1,5 +1,6 @@
 <?php
 // Database Connection Configuration
+date_default_timezone_set('Africa/Lagos');
 $host = 'localhost';
 $db   = 'oja_inventory';
 $user = 'root';

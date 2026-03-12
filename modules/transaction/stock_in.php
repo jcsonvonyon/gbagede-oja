@@ -229,7 +229,7 @@ function renderCart() {
                 <tr style="border-bottom: 1px solid #f8fafc;">
                     <td style="padding: 15px; font-weight: 700; color: #334155;">${item.name}</td>
                     <td style="padding: 15px; text-align: center;">
-                        <input type="number" step="0.01" value="${item.qty}" min="0.01"
+                        <input type="number" step="1" value="${item.qty}" min="1"
                             onchange="updateField(${index}, 'qty', this.value)" 
                             style="width: 80px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; font-weight: 700; outline: none;">
                     </td>

@@ -3,16 +3,18 @@ require_once 'includes/db.php';
 require_once 'includes/auth.php';
 requireLogin();
 
-// Fetch Products with Category and Unit
-$stmt = $pdo->query("SELECT p.*, c.name as category_name, u.abbreviation as unit_name, p.unit_value 
+// Fetch Products with Hierarchy (Group > Sub-group) and Unit
+$stmt = $pdo->query("SELECT p.*, c.name as category_name, pg.name as group_name, u.abbreviation as unit_name, p.unit_value 
                     FROM products p 
                     LEFT JOIN categories c ON p.category_id = c.id 
+                    LEFT JOIN product_groups pg ON c.group_id = pg.id
                     LEFT JOIN units u ON p.unit_id = u.id 
                     ORDER BY p.name ASC");
 $products = $stmt->fetchAll();
 
-// Fetch Categories and Units for modal
-$categories = $pdo->query("SELECT id, name FROM categories WHERE status = 'Active' ORDER BY name ASC")->fetchAll();
+// Fetch Major Groups and all Sub-groups (linked to groups) for the modal
+$product_groups = $pdo->query("SELECT id, name FROM product_groups WHERE status = 'Active' ORDER BY name ASC")->fetchAll();
+$all_subgroups = $pdo->query("SELECT id, name, group_id FROM categories WHERE status = 'Active' ORDER BY name ASC")->fetchAll();
 $units = $pdo->query("SELECT id, name, abbreviation FROM units WHERE status = 'Active' ORDER BY name ASC")->fetchAll();
 
 $success = $_GET['success'] ?? null;
@@ -77,7 +79,10 @@ $error = $_GET['error'] ?? null;
                     </div>
                 </td>
                 <td>
-                    <span style="font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 4px 10px; border-radius: 20px;">
+                    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">
+                        <?= htmlspecialchars($p['group_name'] ?? 'No Group') ?>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 600; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 20px;">
                         <?= htmlspecialchars($p['category_name'] ?? 'Uncategorized') ?>
                     </span>
                 </td>
@@ -181,14 +186,23 @@ $error = $_GET['error'] ?? null;
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Category / Sub-group</label>
-                    <select id="category_id" name="category_id" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; background: white;">
-                        <option value="">-- No Category --</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Major Group</label>
+                    <select id="group_id" onchange="handleGroupChange()" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; background: white;">
+                        <option value="">-- Select Major Group --</option>
+                        <?php foreach ($product_groups as $group): ?>
+                            <option value="<?= $group['id'] ?>"><?= htmlspecialchars($group['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Category / Sub-group</label>
+                    <select id="category_id" name="category_id" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; background: white;">
+                        <option value="">-- No Sub-group --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div>
                     <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase;">Unit of Measurement</label>
                     <div style="display: flex; gap: 10px;">
@@ -250,11 +264,38 @@ $error = $_GET['error'] ?? null;
 </div>
 
 <script>
+const allSubgroups = <?= json_encode($all_subgroups) ?>;
+
+function handleGroupChange(targetSubgroupId = null) {
+    const groupId = document.getElementById('group_id').value;
+    const subGroupSelect = document.getElementById('category_id');
+    
+    // Clear current options
+    subGroupSelect.innerHTML = '<option value="">-- No Sub-group --</option>';
+    
+    if (groupId) {
+        const filtered = allSubgroups.filter(sg => sg.group_id == groupId);
+        filtered.forEach(sg => {
+            const option = document.createElement('option');
+            option.value = sg.id;
+            option.textContent = sg.name;
+            if (targetSubgroupId && sg.id == targetSubgroupId) {
+                option.selected = true;
+            }
+            subGroupSelect.appendChild(option);
+        });
+    }
+}
+
 function openProductModal() {
     document.getElementById('productModal').style.display = 'flex';
     document.getElementById('modalTitle').innerText = 'Add New Product';
     document.getElementById('productForm').reset();
     document.getElementById('product_id').value = '';
+    
+    // Reset subgroups
+    handleGroupChange();
+    
     // Auto focus name
     setTimeout(() => document.getElementById('name').focus(), 100);
 }
@@ -269,7 +310,17 @@ function editProduct(data) {
     document.getElementById('product_id').value = data.id;
     document.getElementById('name').value = data.name;
     document.getElementById('barcode').value = data.barcode || '';
-    document.getElementById('category_id').value = data.category_id || '';
+    
+    // Set Group and trigger filter
+    const cat = allSubgroups.find(s => s.id == data.category_id);
+    if (cat) {
+        document.getElementById('group_id').value = cat.group_id;
+        handleGroupChange(data.category_id);
+    } else {
+        document.getElementById('group_id').value = '';
+        handleGroupChange();
+    }
+    
     document.getElementById('unit_id').value = data.unit_id || '';
     document.getElementById('unit_value').value = data.unit_value || 1;
     document.getElementById('purchase_price').value = data.purchase_price;

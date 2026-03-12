@@ -9,6 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $territory = trim($_POST['territory'] ?? '');
+    $commission_rate = floatval($_POST['commission_rate'] ?? 0);
     $status = $_POST['status'] ?? 'Active';
 
     if (empty($name)) {
@@ -19,16 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($id) {
             // Update
-            $stmt = $pdo->prepare("UPDATE sales_reps SET name = ?, phone = ?, email = ?, status = ? WHERE id = ?");
-            $stmt->execute([$name, $phone, $email, $status, $id]);
+            $stmt = $pdo->prepare("UPDATE sales_reps SET name = ?, phone = ?, email = ?, territory = ?, commission_rate = ?, status = ? WHERE id = ?");
+            $stmt->execute([$name, $phone, $email, $territory, $commission_rate, $status, $id]);
             
             logActivity($pdo, $_SESSION['user_id'], 'UPDATE', 'SALES_REPS', "Updated sales rep: $name");
             
             $msg = "rep_updated";
         } else {
             // Insert
-            $stmt = $pdo->prepare("INSERT INTO sales_reps (name, phone, email, status) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$name, $phone, $email, $status]);
+            $stmt = $pdo->prepare("INSERT INTO sales_reps (name, phone, email, territory, commission_rate, status) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $phone, $email, $territory, $commission_rate, $status]);
             
             logActivity($pdo, $_SESSION['user_id'], 'CREATE', 'SALES_REPS', "Created new sales rep: $name");
             

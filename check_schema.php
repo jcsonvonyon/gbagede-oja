@@ -1,6 +1,5 @@
 <?php
 require_once 'includes/db.php';
 $stmt = $pdo->query("DESCRIBE transactions");
-$cols = $stmt->fetchAll(PDO::FETCH_COLUMN);
-echo implode(", ", $cols) . "\n";
+echo json_encode($stmt->fetchAll());
 ?>
