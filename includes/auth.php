@@ -52,6 +52,17 @@ function requirePermission($module, $action = 'view') {
 }
 
 /**
+ * Restrict access to Admins only
+ */
+function adminOnly() {
+    requireLogin();
+    if (!hasRole('Admin')) {
+        header("Location: dashboard.php?error=unauthorized");
+        exit();
+    }
+}
+
+/**
  * Logout user
  */
 function logout() {
